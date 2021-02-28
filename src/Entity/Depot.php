@@ -2,13 +2,46 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Core\Annotation\ApiResource;
-use App\Repository\DepotRepository;
+use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\DepotRepository;
+use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Core\Annotation\ApiSubresource;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * @ApiResource()
+ 
  * @ORM\Entity(repositoryClass=DepotRepository::class)
+ * @ApiResource(
+ *  * normalizationContext={"groups"={"depot:read"}} ,
+ * denormalizationContext={"groups"={"depot:write"}},
+ *  collectionOperations={
+ *           "POST"={
+ *                     "path"="/admin/depots",
+ *                      "deserializationContext" = false
+ *             
+ *                },
+ *         "GET"={
+ *                    "path"= "/admin/depots",
+ *    
+ * 
+ *             }},
+ *   itemOperations={
+ *              "GET"={
+ *                     "path"= "/admin/depots/{id}"
+ *    
+       
+ *                 },
+ *             "PUT"={
+ *                    "path"= "/admin/depots/{id}"
+ *    
+ *                  },
+ *           "DELETE"={
+ *                        "path"= "/admin/depots/{id}"
+ *    
+ *                    }
+ * }
+ * )
  */
 class Depot
 {
@@ -20,24 +53,31 @@ class Depot
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, nullable=true)
+     * @Groups({"depot:read","depot:write"})
      */
     private $dateDepot;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"depot:read","depot:write"})
+     * @Assert\NotBlank
      */
     private $montantDepot;
 
     /**
      * @ORM\ManyToOne(targetEntity=User::class, inversedBy="deposer")
      * @ORM\JoinColumn(nullable=false)
+     * @Groups({"users:read"})
+     * @ApiSubresource()
      */
     private $user;
 
     /**
      * @ORM\ManyToOne(targetEntity=Account::class, inversedBy="depots")
      * @ORM\JoinColumn(nullable=false)
+     * @Groups({"account:read","account:write"})
+     * @ApiSubresource()
      */
     private $compteCibler;
 

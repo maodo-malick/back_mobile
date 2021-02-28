@@ -2,16 +2,46 @@
 
 namespace App\Entity;
 
-use App\Repository\AgencyRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\AgencyRepository;
+use Doctrine\Common\Collections\Collection;
 use ApiPlatform\Core\Annotation\ApiResource;
-
+use ApiPlatform\Core\Annotation\ApiSubresource;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass=AgencyRepository::class)
- * ApiResource
+ * @ApiResource(
+ * normalizationContext={"groups"={"agence:read"}} ,
+ * denormalizationContext={"groups"={"agence:write"}},
+ *  collectionOperations={
+ *      "POST"={
+ *              "path"="/admin/agences",
+ *             
+ *         },
+ *     "GET"={
+ *    "path"= "/admin/agences",
+ *    
+ * 
+ *    }},
+ * itemOperations={
+ *     "GET"={
+ *     "path"= "/admin/agences/{id}"
+ *    
+       
+ * },
+ *     "PUT"={
+ *     "path"= "/admin/agences/{id}"
+ *    
+ *      },
+ * "DELETE"={
+ *     "path"= "/admin/agences/{id}"
+ *    
+ *      }
+ * }
+ * )
  */
 class Agency
 {
@@ -19,32 +49,53 @@ class Agency
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
+     * @Groups({"agence:read","agence:write"})
      */
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, unique=true)
+     * @Groups({"agence:read","agence:write"})
+     * @Assert\NotBlank
      */
     private $nomAgence;
 
     /**
      * @ORM\Column(type="string", length=255)
+     *  @Groups({"agence:read","agence:write"})
+     * @Assert\NotBlank
      */
     private $adresse;
 
     /**
      * @ORM\Column(type="boolean")
+     *  @Groups({"agence:read", "agence:write"})
+     
      */
-    private $status;
+    private $status = false;
 
     /**
      * @ORM\OneToMany(targetEntity=User::class, mappedBy="agency")
+     * @Groups({"users:read", "users:write"})
+     * @Assert\NotBlank
      */
-    private $employer;
+    private $utilisateur;
 
+    /**
+     * @ORM\OneToOne(targetEntity=Account::class, inversedBy="agency", cascade={"persist", "remove"})
+     * @ORM\JoinColumn(nullable=false)
+     * @Groups({"account:read","account:write"})
+     * ApiSubresource()
+     */
+    private $account;
+
+    
+    
+    
     public function __construct()
     {
         $this->employer = new ArrayCollection();
+        $this->utilisateur = new ArrayCollection();
     }
 
  
@@ -93,32 +144,46 @@ class Agency
     /**
      * @return Collection|User[]
      */
-    public function getEmployer(): Collection
+    public function getUtilisateur(): Collection
     {
-        return $this->employer;
+        return $this->utilisateur;
     }
 
-    public function addEmployer(User $employer): self
+    public function addUtilisateur(User $utilisateur): self
     {
-        if (!$this->employer->contains($employer)) {
-            $this->employer[] = $employer;
-            $employer->setAgency($this);
+        if (!$this->utilisateur->contains($utilisateur)) {
+            $this->utilisateur[] = $utilisateur;
+            $utilisateur->setAgency($this);
         }
 
         return $this;
     }
 
-    public function removeEmployer(User $employer): self
+    public function removeUtilisateur(User $utilisateur): self
     {
-        if ($this->employer->removeElement($employer)) {
+        if ($this->utilisateur->removeElement($utilisateur)) {
             // set the owning side to null (unless already changed)
-            if ($employer->getAgency() === $this) {
-                $employer->setAgency(null);
+            if ($utilisateur->getAgency() === $this) {
+                $utilisateur->setAgency(null);
             }
         }
 
         return $this;
     }
+
+    public function getAccount(): ?Account
+    {
+        return $this->account;
+    }
+
+    public function setAccount(Account $account): self
+    {
+        $this->account = $account;
+
+        return $this;
+    }
+
+   
 
    
 }

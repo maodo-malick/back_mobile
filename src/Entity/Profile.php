@@ -7,10 +7,15 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Core\Annotation\ApiResource;
-
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 /**
  * @ORM\Entity(repositoryClass=ProfileRepository::class)
- * @ApiResource
+ * @UniqueEntity("libelle")
+ * @ApiResource(
+ * normalizationContext={"groups"={"profile:read"}} ,
+ * denormalizationContext={"groups"={"profiles:write"}}
+ * )
  */
 class Profile
 {
@@ -22,14 +27,21 @@ class Profile
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, unique=true)
+     * @Groups({"profile:read", "profile:write"})
      */
     private $libelle;
 
     /**
      * @ORM\OneToMany(targetEntity=User::class, mappedBy="profile")
+     * @Groups({"users:read"})
      */
     private $users;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $archiver;
 
     public function __construct()
     {
@@ -79,6 +91,18 @@ class Profile
                 $user->setProfile(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getArchiver(): ?bool
+    {
+        return $this->archiver;
+    }
+
+    public function setArchiver(bool $archiver): self
+    {
+        $this->archiver = $archiver;
 
         return $this;
     }

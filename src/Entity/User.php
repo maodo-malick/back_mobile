@@ -8,11 +8,48 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 use ApiPlatform\Core\Annotation\ApiResource;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
+
 
 /**
  * @ORM\Entity(repositoryClass=UserRepository::class)
  * @ORM\Table(name="`user`")
- * @ApiResource
+ * @ApiResource(
+ * normalizationContext={"groups"={"users:read"}} ,
+ * denormalizationContext={"groups"={"users:write"}},
+ *  collectionOperations={
+ *      "POST"={
+ *              "path"="/users",
+ *          "security_post_denormalize"="is_granted('ADD', object)",
+ *          "security_message"="Cette tache est reserver au Administrateur"
+ *         },
+ *     "GET"={
+ *    "path"= "/users",
+ *    "security"="is_granted('VIEW_ALL', object)",
+ *     "security_message"="Cette tache est reserver au Administrateur"
+ * 
+ *    }},
+ * itemOperations={
+ *     "GET"={
+ *     "path"= "/users/{id}",
+ *    "security"="is_granted('VIEW_ALL', object)",
+*     "security_message"="Cette tache est reserver au Administrateur"
+       
+ * },
+ *     "PUT"={
+ *     "path"= "/users/{id}",
+ *    "security"="is_granted('EDIT', object)",
+ *     "security_message"="Cette tache est reserver au Administrateur"  
+ *      },
+ * "DELETE"={
+ *     "path"= "/users/{id}",
+ *    "security"="is_granted('DEL', object)",
+ *     "security_message"="Cette tache est reserver au Administrateur"  
+ *      }
+ * }
+ * 
+ * )
  */
 class User implements UserInterface
 {
@@ -25,42 +62,58 @@ class User implements UserInterface
 
     /**
      * @ORM\Column(type="string", length=180, unique=true)
+     *@Assert\NotBlank
+     *@Assert\Email(
+     *     message = "The email '{{ value }}' is not a valid email."
+     * )
      */
     private $email;
 
-    /**
-     
-     */
+    
     private $roles = [];
 
     /**
      * @var string The hashed password
      * @ORM\Column(type="string")
+     * @Assert\NotBlank
      */
     private $password;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      */
     private $firstname;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
+     *  @Groups({"users:read"})
      */
     private $lastname;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
+     *  @Groups({"users:read"})
      */
     private $telephon;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
+     *  @Groups({"users:read"})
      */
     private $Adresse;
 
     /**
      * @ORM\Column(type="blob", nullable=true)
+     * @Assert\File(
+     *     mimeTypes = {"application/png", "application/jpeg"},
+     *     mimeTypesMessage = "Please upload a valid picture"
+     *  
+     * )
+     * @Groups({"users:read"})
      */
     private $avatar;
 
@@ -72,6 +125,7 @@ class User implements UserInterface
     /**
      * @ORM\ManyToOne(targetEntity=Profile::class, inversedBy="users")
      * @ORM\JoinColumn(nullable=false)
+     * @Groups({"profile:read"})
      */
     private $profile;
 
@@ -80,15 +134,17 @@ class User implements UserInterface
      */
     private $deposer;
 
-    /**
-     * @ORM\ManyToOne(targetEntity=Agency::class, inversedBy="employer")
-     */
-    private $agency;
-
+   
     /**
      * @ORM\OneToMany(targetEntity=Transaction::class, mappedBy="user")
      */
     private $transactions;
+
+    /**
+     * @ORM\ManyToOne(targetEntity=Agency::class, inversedBy="utilisateur")
+     * @Groups({"agency:read", "agency:write"})
+     */
+    private $agency;
 
     public function __construct()
     {
@@ -130,7 +186,7 @@ class User implements UserInterface
     {
         $roles = $this->roles;
         // guarantee every user at least has ROLE_USER
-        $roles[] = 'Role_'.$this->profil->getLibelle();
+        $roles[] = 'Role_'.$this->profile->getLibelle();
 
         return array_unique($roles);
     }
@@ -291,17 +347,7 @@ class User implements UserInterface
         return $this;
     }
 
-    public function getAgency(): ?Agency
-    {
-        return $this->agency;
-    }
-
-    public function setAgency(?Agency $agency): self
-    {
-        $this->agency = $agency;
-
-        return $this;
-    }
+   
 
     /**
      * @return Collection|Transaction[]
@@ -329,6 +375,18 @@ class User implements UserInterface
                 $transaction->setUser(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getAgency(): ?Agency
+    {
+        return $this->agency;
+    }
+
+    public function setAgency(?Agency $agency): self
+    {
+        $this->agency = $agency;
 
         return $this;
     }

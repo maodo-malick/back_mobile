@@ -7,9 +7,40 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Core\Annotation\ApiResource;
+use Symfony\Component\Serializer\Annotation\Groups;
+use ApiPlatform\Core\Annotation\ApiSubresource;
 /**
  * @ORM\Entity(repositoryClass=AccountRepository::class)
- * @ApiResource
+ * @ApiResource(
+ * normalizationContext={"groups"={"acccount:read"}} ,
+ * denormalizationContext={"groups"={"account:write"}},
+ *  collectionOperations={
+ *           "POST"={
+ *                     "path"="/admin/accounts",
+ *                      "deserializationContext" = false
+ *             
+ *                },
+ *         "GET"={
+ *                    "path"= "/admin/accounts",
+ *    
+ * 
+ *             }},
+ *   itemOperations={
+ *              "GET"={
+ *                     "path"= "/admin/accounts/{id}"
+ *    
+       
+ *                 },
+ *             "PUT"={
+ *                    "path"= "/admin/accounts/{id}"
+ *    
+ *                  },
+ *           "DELETE"={
+ *                        "path"= "/admin/accounts/{id}"
+ *    
+ *                    }
+ * }
+ * )
  */
 class Account
 {
@@ -22,18 +53,21 @@ class Account
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"account:read","account:write"})
      */
     private $NumeroCompte;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"account:read","account:write"})
      */
     private $solde;
 
     /**
      * @ORM\Column(type="boolean")
+     * @Groups({"account:read","account:write"})
      */
-    private $statut;
+    private $statut = false;
 
     /**
      * @ORM\OneToMany(targetEntity=Depot::class, mappedBy="compteCibler")
@@ -46,10 +80,20 @@ class Account
     private $transaction;
 
     /**
-     * @ORM\OneToOne(targetEntity=Agency::class, cascade={"persist", "remove"})
-     * @ORM\JoinColumn(nullable=false)
+     * @ORM\OneToOne(targetEntity=Agency::class, mappedBy="account", cascade={"persist", "remove"})
      */
-    private $agence;
+    private $agency;
+
+    /**
+     * @ORM\Column(type="date")
+     */
+    private $creatAt;
+
+    
+    
+   
+
+    
 
     public function __construct()
     {
@@ -158,15 +202,37 @@ class Account
         return $this;
     }
 
-    public function getAgence(): ?Agency
+    public function getAgency(): ?Agency
     {
-        return $this->agence;
+        return $this->agency;
     }
 
-    public function setAgence(Agency $agence): self
+    public function setAgency(Agency $agency): self
     {
-        $this->agence = $agence;
+        // set the owning side of the relation if necessary
+        if ($agency->getAccount() !== $this) {
+            $agency->setAccount($this);
+        }
+
+        $this->agency = $agency;
 
         return $this;
     }
+
+    public function getCreatAt(): ?\DateTimeInterface
+    {
+        return $this->creatAt;
+    }
+
+    public function setCreatAt(\DateTimeInterface $creatAt): self
+    {
+        $this->creatAt = $creatAt;
+
+        return $this;
+    }
+
+   
+
+   
+
 }
